@@ -13,4 +13,4 @@ test:
 	go test
 
 build:
-	go build -o bin/nflx-proxy server.go
+	go build -o bin/nflx-proxy proxy.go

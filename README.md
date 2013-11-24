@@ -7,7 +7,7 @@ Example
 * Setup a server with an IP address in the region you want to access. For
   example a EC2 instance in a US region.
 
-* Start nflix-proxy and map two Netflix zones to your Amazon EC2 public IP
+* Start nflx-proxy and map two Netflix zones to your Amazon EC2 public IP
   address:
 
 ```
