@@ -62,14 +62,37 @@ func dnsHandler(w dns.ResponseWriter, m *dns.Msg) {
     w.WriteMsg(r)
 }
 
-func tcpProxy(local net.Conn, remoteAddr string) {
+func copy(dst io.ReadWriteCloser, src io.ReadWriteCloser) {
+    if _, err := io.Copy(dst, src); err != nil {
+        log.Print(err)
+    }
+    dst.Close()
+    src.Close()
+}
+
+func handleConn(local net.Conn, remoteAddr string) {
     remote, err := net.Dial("tcp", remoteAddr)
     if err != nil {
         log.Printf("Failed to connect to %s: %s", remoteAddr, err)
         return
     }
-    go io.Copy(local, remote)
-    go io.Copy(remote, local)
+    go copy(local, remote)
+    go copy(remote, local)
+}
+
+func tcpProxy(listenAddr string, remoteAddr string) {
+    listener, err := net.Listen("tcp", listenAddr)
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer listener.Close()
+    for {
+        conn, err := listener.Accept()
+        if err != nil {
+            log.Print(err)
+        }
+        go handleConn(conn, remoteAddr)
+    }
 }
 
 func listenAndServe() {
@@ -85,32 +108,8 @@ func listenAndServe() {
             log.Fatal(err)
         }
     }()
-    go func() {
-        listener, err := net.Listen("tcp", ":80")
-        if err != nil {
-            log.Fatal(err)
-        }
-        for {
-            conn, err := listener.Accept()
-            if err != nil {
-                log.Print(err)
-            }
-            go tcpProxy(conn, "movies.netflix.com:80")
-        }
-    }()
-    go func() {
-        listener, err := net.Listen("tcp", ":443")
-        if err != nil {
-            log.Fatal(err)
-        }
-        for {
-            conn, err := listener.Accept()
-            if err != nil {
-                log.Print(err)
-            }
-            go tcpProxy(conn, "cbp-us.nccp.netflix.com:443")
-        }
-    }()
+    go tcpProxy(":80", "movies.netflix.com:80")
+    go tcpProxy(":443", "cbp-us.nccp.netflix.com:443")
 }
 
 func printfErr(format string, a ...interface{}) {
