@@ -1,4 +1,5 @@
 .vagrant/
+bin/
 pkg/
 provisioning/
 src/
