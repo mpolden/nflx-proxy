@@ -15,7 +15,7 @@ import (
 
 var zones map[string]net.IP
 
-func dnsProxy(w dns.ResponseWriter, m *dns.Msg) *dns.Msg {
+func ProxyMsg(m *dns.Msg) *dns.Msg {
     if len(m.Question) == 0 {
         return nil
     }
@@ -32,7 +32,6 @@ func dnsProxy(w dns.ResponseWriter, m *dns.Msg) *dns.Msg {
         return response
     }
 
-    log.Printf("Proxying request for %s IN A from %s", q.Name, w.RemoteAddr())
     response := new(dns.Msg)
     response.SetReply(m)
 
@@ -46,7 +45,9 @@ func dnsProxy(w dns.ResponseWriter, m *dns.Msg) *dns.Msg {
 }
 
 func dnsHandler(w dns.ResponseWriter, m *dns.Msg) {
-    if msg := dnsProxy(w, m); msg != nil {
+    if msg := ProxyMsg(m); msg != nil {
+        log.Printf("Proxying request for %s IN A from %s",
+            msg.Question[0].Name, w.RemoteAddr())
         w.WriteMsg(msg)
         return
     }
@@ -129,10 +130,7 @@ func main() {
         if len(zoneAndIp) != 2 {
             printfErr("Invalid zone mapping: %s", arg)
         }
-        zone := zoneAndIp[0]
-        if !strings.HasSuffix(zone, ".") {
-            zone += "."
-        }
+        zone := dns.Fqdn(zoneAndIp[0])
         ip := net.ParseIP(zoneAndIp[1])
         if ip == nil {
             printfErr("Invalid IP address: %s", zoneAndIp[1])
