@@ -5,6 +5,7 @@ import (
     "github.com/miekg/dns"
     "log"
     "net"
+    "net/http"
     "os"
     "os/signal"
     "syscall"
@@ -13,7 +14,22 @@ import (
 var zone string
 var proxyIp net.IP
 
-func proxy(w dns.ResponseWriter, m *dns.Msg) *dns.Msg {
+func httpHandler(w http.ResponseWriter, req *http.Request) {
+    log.Printf("Handling HTTP request from %s", req.RemoteAddr)
+
+    req.URL.Scheme = "http"
+    req.URL.Host = "movies.netflix.com"
+    req.RequestURI = ""
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        log.Fatal(err)
+    }
+    resp.Write(w)
+}
+
+func proxyDnsMsg(w dns.ResponseWriter, m *dns.Msg) *dns.Msg {
     if len(m.Question) == 0 {
         return nil
     }
@@ -37,9 +53,9 @@ func proxy(w dns.ResponseWriter, m *dns.Msg) *dns.Msg {
     return m
 }
 
-func handler(w dns.ResponseWriter, m *dns.Msg) {
-    if proxiedMsg := proxy(w, m); proxiedMsg != nil {
-        w.WriteMsg(proxiedMsg)
+func dnsHandler(w dns.ResponseWriter, m *dns.Msg) {
+    if msg := proxyDnsMsg(w, m); msg != nil {
+        w.WriteMsg(msg)
         return
     }
 
@@ -54,32 +70,46 @@ func handler(w dns.ResponseWriter, m *dns.Msg) {
     w.WriteMsg(r)
 }
 
-func main() {
-    dns.HandleFunc(".", handler)
+func listenAndServe() {
+    go func() {
+        err := dns.ListenAndServe(":53", "udp", dns.HandlerFunc(dnsHandler))
+        if err != nil {
+            log.Fatal(err)
+        }
+    }()
+    go func() {
+        err := dns.ListenAndServe(":53", "tcp", dns.HandlerFunc(dnsHandler))
+        if err != nil {
+            log.Fatal(err)
+        }
+    }()
+    go func() {
+        err := http.ListenAndServe(":80", http.HandlerFunc(httpHandler))
+        if err != nil {
+            log.Fatal(err)
+        }
+    }()
+}
 
+func main() {
     flZone := flag.String("zone", "", "the zone to proxy")
     flIp := flag.String("ip", "", "ip address to answer with")
     flag.Parse()
 
     if len(*flZone) == 0 {
-        log.Fatal("zone must be given")
+        log.Fatal("Argument zone must be given")
     }
     if len(*flIp) == 0 {
-        log.Fatal("ip must be given")
+        log.Fatal("Argument ip must be given")
     }
 
     zone = *flZone
     if proxyIp = net.ParseIP(*flIp); proxyIp == nil {
-        log.Fatalf("invalid IP address: %s", *flIp)
+        log.Fatalf("Invalid IP address: %s", *flIp)
     }
     log.Printf("Proxying requests for zone: %s -> %s", zone, proxyIp)
 
-    go func() {
-        err := dns.ListenAndServe(":8053", "udp", nil)
-        if err != nil {
-            log.Fatal(err)
-        }
-    }()
+    listenAndServe()
 
     sig := make(chan os.Signal)
     signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
