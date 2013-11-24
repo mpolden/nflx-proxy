@@ -3,31 +3,16 @@ package main
 import (
     "flag"
     "github.com/miekg/dns"
+    "io"
     "log"
     "net"
-    "net/http"
     "os"
     "os/signal"
     "syscall"
 )
-
 var zone string
 var proxyIp net.IP
 
-func httpHandler(w http.ResponseWriter, req *http.Request) {
-    log.Printf("Handling HTTP request from %s", req.RemoteAddr)
-
-    req.URL.Scheme = "http"
-    req.URL.Host = "movies.netflix.com"
-    req.RequestURI = ""
-
-    client := &http.Client{}
-    resp, err := client.Do(req)
-    if err != nil {
-        log.Fatal(err)
-    }
-    resp.Write(w)
-}
 
 func proxyDnsMsg(w dns.ResponseWriter, m *dns.Msg) *dns.Msg {
     if len(m.Question) == 0 {
@@ -70,6 +55,16 @@ func dnsHandler(w dns.ResponseWriter, m *dns.Msg) {
     w.WriteMsg(r)
 }
 
+func tcpProxy(local net.Conn, remoteAddr string) {
+    remote, err := net.Dial("tcp", remoteAddr)
+    if err != nil {
+        log.Print("Failed to connect to %s: %s", remoteAddr, err)
+        return
+    }
+    go io.Copy(local, remote)
+    go io.Copy(remote, local)
+}
+
 func listenAndServe() {
     go func() {
         err := dns.ListenAndServe(":53", "udp", dns.HandlerFunc(dnsHandler))
@@ -84,9 +79,29 @@ func listenAndServe() {
         }
     }()
     go func() {
-        err := http.ListenAndServe(":80", http.HandlerFunc(httpHandler))
+        listener, err := net.Listen("tcp", ":80")
         if err != nil {
             log.Fatal(err)
+        }
+        for {
+            conn, err := listener.Accept()
+            if err != nil {
+                log.Print(err)
+            }
+            go tcpProxy(conn, "movies.netflix.com:80")
+        }
+    }()
+    go func() {
+        listener, err := net.Listen("tcp", ":443")
+        if err != nil {
+            log.Fatal(err)
+        }
+        for {
+            conn, err := listener.Accept()
+            if err != nil {
+                log.Print(err)
+            }
+            go tcpProxy(conn, "cbp-us.nccp.netflix.com:443")
         }
     }()
 }
