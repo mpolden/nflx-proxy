@@ -11,7 +11,7 @@ Example
   address:
 
 ```
-$ nflix-proxy movies.netflix.com:1.3.3.7 cbp-us.nccp.netflix.com:1.3.3.7
+$ nflx-proxy movies.netflix.com:1.3.3.7 cbp-us.nccp.netflix.com:1.3.3.7
 2013/11/24 19:08:41 Answering movies.netflix.com. with 1.3.3.7
 2013/11/24 19:08:41 Answering cbp-us.nccp.netflix.com. with 1.3.3.7
  ```
