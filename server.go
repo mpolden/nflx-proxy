@@ -2,26 +2,30 @@ package main
 
 import (
     "flag"
+    "fmt"
     "github.com/miekg/dns"
     "io"
     "log"
     "net"
     "os"
     "os/signal"
+    "strings"
     "syscall"
 )
-var zone string
-var proxyIp net.IP
 
+var zones map[string]net.IP
 
 func dnsProxy(w dns.ResponseWriter, m *dns.Msg) *dns.Msg {
     if len(m.Question) == 0 {
         return nil
     }
     q := m.Question[0]
-    if q.Name != zone {
+
+    ip, exists := zones[q.Name]
+    if !exists {
         return nil
     }
+
     if q.Qtype != dns.TypeA {
         response := new(dns.Msg)
         response.SetReply(m)
@@ -108,23 +112,34 @@ func listenAndServe() {
     }()
 }
 
+func printfErr(format string, a ...interface{}) {
+    fmt.Fprintf(os.Stderr, format+"\n", a...)
+    os.Exit(2)
+}
+
 func main() {
-    flZone := flag.String("zone", "", "the zone to proxy")
-    flIp := flag.String("ip", "", "ip address to answer with")
     flag.Parse()
-
-    if len(*flZone) == 0 {
-        log.Fatal("Argument zone must be given")
-    }
-    if len(*flIp) == 0 {
-        log.Fatal("Argument ip must be given")
+    if flag.NArg() == 0 {
+        printfErr("usage: %s zone:ip [zone:ip ...]", os.Args[0])
     }
 
-    zone = *flZone
-    if proxyIp = net.ParseIP(*flIp); proxyIp == nil {
-        log.Fatalf("Invalid IP address: %s", *flIp)
+    zones = make(map[string]net.IP, flag.NArg())
+    for _, arg := range flag.Args() {
+        zoneAndIp := strings.SplitN(arg, ":", 2)
+        if len(zoneAndIp) != 2 {
+            printfErr("Invalid zone mapping: %s", arg)
+        }
+        zone := zoneAndIp[0]
+        if !strings.HasSuffix(zone, ".") {
+            zone += "."
+        }
+        ip := net.ParseIP(zoneAndIp[1])
+        if ip == nil {
+            printfErr("Invalid IP address: %s", zoneAndIp[1])
+        }
+        zones[zone] = ip
+        log.Printf("Answering %s with %s", zone, ip)
     }
-    log.Printf("Proxying requests for zone: %s -> %s", zone, proxyIp)
 
     listenAndServe()
 
