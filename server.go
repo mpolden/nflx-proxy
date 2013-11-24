@@ -64,7 +64,7 @@ func dnsHandler(w dns.ResponseWriter, m *dns.Msg) {
 func tcpProxy(local net.Conn, remoteAddr string) {
     remote, err := net.Dial("tcp", remoteAddr)
     if err != nil {
-        log.Print("Failed to connect to %s: %s", remoteAddr, err)
+        log.Printf("Failed to connect to %s: %s", remoteAddr, err)
         return
     }
     go io.Copy(local, remote)
