@@ -14,7 +14,7 @@ var zone string
 var proxyIp net.IP
 
 
-func proxyDnsMsg(w dns.ResponseWriter, m *dns.Msg) *dns.Msg {
+func dnsProxy(w dns.ResponseWriter, m *dns.Msg) *dns.Msg {
     if len(m.Question) == 0 {
         return nil
     }
@@ -23,23 +23,26 @@ func proxyDnsMsg(w dns.ResponseWriter, m *dns.Msg) *dns.Msg {
         return nil
     }
     if q.Qtype != dns.TypeA {
-        return nil
+        response := new(dns.Msg)
+        response.SetReply(m)
+        return response
     }
 
     log.Printf("Proxying request for %s IN A from %s", q.Name, w.RemoteAddr())
-    resp := new(dns.Msg)
-    resp.SetReply(m)
+    response := new(dns.Msg)
+    response.SetReply(m)
 
     rr := new(dns.A)
     rr.Hdr = dns.RR_Header{Name: q.Name, Rrtype: dns.TypeA,
         Class: dns.ClassINET, Ttl: 0}
-    rr.A = proxyIp.To4()
-    m.Answer = append(m.Answer, rr)
-    return m
+    rr.A = ip.To4()
+    response.Answer = append(m.Answer, rr)
+
+    return response
 }
 
 func dnsHandler(w dns.ResponseWriter, m *dns.Msg) {
-    if msg := proxyDnsMsg(w, m); msg != nil {
+    if msg := dnsProxy(w, m); msg != nil {
         w.WriteMsg(msg)
         return
     }
@@ -51,7 +54,6 @@ func dnsHandler(w dns.ResponseWriter, m *dns.Msg) {
         log.Print(err)
         return
     }
-    log.Printf("Request passed from %s passed through", w.RemoteAddr())
     w.WriteMsg(r)
 }
 
