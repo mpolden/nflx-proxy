@@ -1,6 +1,5 @@
 .vagrant/
 bin/
 pkg/
-provisioning/
 src/
 vagrant_ansible_inventory_default

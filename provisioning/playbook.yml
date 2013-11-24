@@ -1,0 +1,31 @@
+---
+- hosts: all
+  sudo: yes
+
+  tasks:
+    - name: set timezone
+      copy: src=files/etc/timezone
+            dest=/etc/timezone
+            owner=root
+            group=root
+            mode=0644
+      notify:
+        - update timezone
+
+    - name: add golang repo
+      apt_repository: repo='ppa:duh/golang'
+
+    - name: install packages
+      apt: pkg={{ item }} state=latest update_cache=yes cache_valid_time=3600
+      with_items:
+        - gdb
+        - git
+        - golang
+        - make
+        - mercurial
+      environment:
+        LANG: en_US.UTF-8
+
+  handlers:
+    - name: update timezone
+      command: dpkg-reconfigure --frontend=noninteractive tzdata
