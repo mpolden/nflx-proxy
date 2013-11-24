@@ -3,5 +3,6 @@ bin/
 pkg/
 provisioning/group_vars/production
 provisioning/production
+provisioning/roles/nflx-proxy/files/nflx-proxy
 src/
 vagrant_ansible_inventory_default
