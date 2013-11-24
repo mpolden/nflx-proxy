@@ -1,0 +1,12 @@
+- name: copy nflx-proxy
+  copy: src=nflx-proxy
+        dest=/usr/local/bin/nflx-proxy
+        owner=root
+        group=root
+        mode=0755
+
+- name: install libcap2-bin
+  apt: pkg=libcap2-bin state=latest
+
+- name: set capability
+  command: setcap 'cap_net_bind_service=+ep' /usr/local/bin/nflx-proxy

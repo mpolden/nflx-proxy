@@ -9,4 +9,5 @@
   sudo: yes
   roles:
     - ntp
-    - prod
+    - nflx-proxy
+    - supervisor

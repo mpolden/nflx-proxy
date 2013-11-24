@@ -1,6 +1,7 @@
 .vagrant/
 bin/
 pkg/
+provisioning/group_vars/production
 provisioning/production
 src/
 vagrant_ansible_inventory_default

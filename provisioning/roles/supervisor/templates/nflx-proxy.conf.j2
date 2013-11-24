@@ -1,0 +1,5 @@
+[program:nflx-proxy]
+command=/usr/local/bin/nflx-proxy {{ nflx_proxy_args }}
+user=nobody
+stdout_logfile=/var/log/supervisor/nflx-proxy.log
+stderr_logfile=/var/log/supervisor/nflx-proxy.log

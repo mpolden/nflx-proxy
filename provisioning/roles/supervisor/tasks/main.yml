@@ -1,0 +1,18 @@
+- name: install supervisor
+  apt: pkg=supervisor state=latest
+
+- name: copy supervisor config
+  template: src=nflx-proxy.conf.j2
+        dest=/etc/supervisor/conf.d/nflx-proxy.conf
+        owner=root
+        group=root
+        mode=0644
+
+- name: make sure supervisor is running
+  service: name=supervisor state=running enabled=yes
+
+- name: update supervisor config
+  command: supervisorctl update
+
+- name: make sure app is running
+  supervisorctl: name=nflx-proxy state=started

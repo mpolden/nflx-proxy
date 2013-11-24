@@ -14,3 +14,4 @@ test:
 
 build:
 	go build -o bin/nflx-proxy proxy.go
+	cp -p bin/nflx-proxy provisioning/roles/nflx-proxy/files/
