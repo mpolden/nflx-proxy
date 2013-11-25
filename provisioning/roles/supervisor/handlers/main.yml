@@ -1,2 +1,0 @@
-- name: restart supervisor
-  service: name=supervisor state=restarted enabled=yes
