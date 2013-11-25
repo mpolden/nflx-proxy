@@ -7,12 +7,9 @@
         owner=root
         group=root
         mode=0644
+  notify:
+    - update supervisor config
+    - restart app
 
 - name: make sure supervisor is running
   service: name=supervisor state=running enabled=yes
-
-- name: update supervisor config
-  command: supervisorctl update
-
-- name: make sure app is running
-  supervisorctl: name=nflx-proxy state=started

@@ -1,0 +1,5 @@
+- name: update supervisor config
+  command: supervisorctl update
+
+- name: restart app
+  supervisorctl: name=nflx-proxy state=restarted
