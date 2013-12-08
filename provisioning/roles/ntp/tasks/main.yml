@@ -1,3 +1,4 @@
+---
 - name: set timezone
   copy: src=etc/timezone
         dest=/etc/timezone

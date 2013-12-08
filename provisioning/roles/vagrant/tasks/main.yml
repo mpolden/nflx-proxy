@@ -1,3 +1,4 @@
+---
 - name: add golang repo
   apt_repository: repo='ppa:duh/golang'
 
