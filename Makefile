@@ -4,7 +4,7 @@ deps:
 	go get github.com/miekg/dns
 
 fmt:
-	gofmt -tabs=false -tabwidth=4 -w=true *.go
+	gofmt -w=true *.go
 
 lint:
 	go vet *.go
