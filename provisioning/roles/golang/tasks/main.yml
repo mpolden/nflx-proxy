@@ -1,0 +1,11 @@
+---
+- name: install golang
+  shell: curl https://storage.googleapis.com/golang/go1.2.2.linux-amd64.tar.gz | tar -zxC /usr/local
+         creates=/usr/local/go
+
+- name: configure path
+  copy: src=golang.sh
+        dest=/etc/profile.d/golang.sh
+        owner=root
+        group=root
+        mode=0644

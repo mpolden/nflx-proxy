@@ -1,7 +1,8 @@
 ---
-- hosts: vagrant
+- hosts: default
   sudo: yes
   roles:
+    - golang
     - ntp
     - vagrant
 
